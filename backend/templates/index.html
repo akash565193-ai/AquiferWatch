@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquiferWatch — Groundwater Risk Forecast</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="strata-bg" aria-hidden="true">
+  <div class="strata-layer sky"></div>
+  <div class="strata-layer soil"></div>
+  <div class="strata-layer rock"></div>
+  <div class="strata-layer aquifer"></div>
+</div>
+
+<header class="site-header">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 40 40" width="34" height="34">
+      <path d="M20 3 C20 3 8 17 8 25 a12 12 0 0 0 24 0 C32 17 20 3 20 3 Z" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <line x1="8.5" y1="25" x2="31.5" y2="25" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2" opacity="0.7"/>
+    </svg>
+    <div>
+      <h1>AquiferWatch</h1>
+      <p class="tagline">1–2 year groundwater scarcity forecast · Tamil Nadu pilot</p>
+    </div>
+  </div>
+  <nav class="header-stats" id="header-stats">
+    <div class="stat"><span class="stat-value" id="stat-total">—</span><span class="stat-label">localities tracked</span></div>
+    <div class="stat risk-high"><span class="stat-value" id="stat-high">—</span><span class="stat-label">high risk</span></div>
+    <div class="stat risk-medium"><span class="stat-value" id="stat-medium">—</span><span class="stat-label">medium risk</span></div>
+    <div class="stat risk-low"><span class="stat-value" id="stat-low">—</span><span class="stat-label">low risk</span></div>
+  </nav>
+</header>
+
+<main>
+  <section class="panel map-panel">
+    <div class="panel-head">
+      <h2>Risk map</h2>
+      <div class="legend">
+        <span><i class="dot high"></i>High — act now</span>
+        <span><i class="dot medium"></i>Medium — monitor</span>
+        <span><i class="dot low"></i>Low — safe for now</span>
+      </div>
+    </div>
+    <div id="map"></div>
+  </section>
+
+  <section class="panel list-panel">
+    <div class="panel-head">
+      <h2>Localities</h2>
+      <div class="filter-group" id="filter-group">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="high">High</button>
+        <button class="filter-btn" data-filter="medium">Medium</button>
+        <button class="filter-btn" data-filter="low">Low</button>
+      </div>
+    </div>
+    <div id="locality-list" class="locality-list"></div>
+  </section>
+
+  <section class="panel detail-panel" id="detail-panel">
+    <div class="panel-head">
+      <h2 id="detail-title">Select a locality</h2>
+      <span class="detail-sub" id="detail-sub">Click a card or map marker to see its 15-year trend and current outlook.</span>
+    </div>
+    <div class="detail-body" id="detail-body">
+      <div class="empty-state">No locality selected yet.</div>
+    </div>
+  </section>
+
+  <section class="panel simulate-panel">
+    <div class="panel-head">
+      <h2>What-if simulator</h2>
+      <span class="detail-sub">Feed in your own rainfall / borewell / land-use numbers and the trained model scores the risk live.</span>
+    </div>
+    <form id="predict-form" class="predict-form">
+      <label>Annual rainfall (mm)
+        <input type="number" name="rainfall_mm" value="850" min="100" max="3000" step="10">
+      </label>
+      <label>Rainfall last year (mm)
+        <input type="number" name="rainfall_mm_last_year" value="950" min="100" max="3000" step="10">
+      </label>
+      <label>Number of borewells
+        <input type="number" name="num_borewells" value="500" min="0" max="5000" step="10">
+      </label>
+      <label>Borewells last year
+        <input type="number" name="num_borewells_last_year" value="450" min="0" max="5000" step="10">
+      </label>
+      <label>Avg. pump hours / day
+        <input type="number" name="avg_pump_hours_per_day" value="7" min="0" max="20" step="0.5">
+      </label>
+      <label>Impervious / concrete cover (%)
+        <input type="number" name="impervious_pct" value="30" min="0" max="100" step="1">
+      </label>
+      <label>Current groundwater depth (m)
+        <input type="number" name="groundwater_depth_m" value="12" min="0" max="60" step="0.5">
+      </label>
+      <label>Depth last year (m)
+        <input type="number" name="groundwater_depth_m_last_year" value="10.5" min="0" max="60" step="0.5">
+      </label>
+      <label>Dominant land use
+        <select name="land_use">
+          <option value="agriculture">Agriculture</option>
+          <option value="urban">Urban / concrete</option>
+          <option value="forest">Forest</option>
+          <option value="mixed" selected>Mixed</option>
+        </select>
+      </label>
+      <button type="submit" class="run-btn">Run forecast</button>
+    </form>
+    <div id="predict-result" class="predict-result"></div>
+  </section>
+
+  <section class="panel model-panel">
+    <div class="panel-head">
+      <h2>Model performance</h2>
+      <span class="detail-sub">RandomForest classifier trained on 15 years of rainfall, borewell and land-use history.</span>
+    </div>
+    <div id="model-metrics" class="model-metrics"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Prototype built on synthetic historical data patterned after IMD rainfall, CGWB groundwater, and Bhuvan land-use datasets. Not for operational use without real monitoring data.</p>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
